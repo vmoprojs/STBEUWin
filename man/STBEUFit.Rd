@@ -20,7 +20,7 @@ STBEUFit(theta,fix=NULL,coords,times,cc,data,type_dist=1,maxdist=NULL,maxtime=NU
     \code{d} is the number of spatial sites).}
 \item{times}{A numeric vector assigning 1-dimension of
     temporal coordinates.}    
-\item{cc}{String; the name of a correlation model. Values \eqn{(1,2)} are allowed for Double Exponential and Gneting respectively. See the Section \bold{Details}.}    
+\item{cc}{Numerical, the name of a correlation model. Values \eqn{(1,2)} are allowed for Double Exponential and Gneting respectively. See the Section \bold{Details}.}    
 \item{data}{A \eqn{t}{d}-matrix (a single spatial realisation) where \code{d} is the number of spatial sites and \code{t} is the number of temporal coordinates. For the description see the Section \bold{Details}.}
 \item{type_dist}{Numerical; \code{1} is Euclinean and \code{2} is Geodesic. The default is \code{1}, the euclidean distance. See the Section \bold{Details}.}
 \item{maxdist}{Numeric; an optional positive value indicating the maximum

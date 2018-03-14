@@ -111,6 +111,60 @@ double DGneiting_sc_s(double h,double u,double power_s,double power_t,
     return (a);
 }
 
+/*/ Derivatives with respect to the temporal scale parameter of the Gneiting correlation model:
+double DGneiting_sc_t(double h,double u, double R_power_s,double R_power_t,
+                      double scale_s,double scale_t,double sep)
+{
+    double arg=0.0,rho=0.0,a=0.0;
+    arg=1+R_pow(u/scale_t, R_power_t);
+    rho=exp(-R_pow(h/scale_s, R_power_s)/(R_pow(arg, 0.5*sep*R_power_s)))/arg;
+    if (arg) a= (R_power_t*R_pow(u/scale_t, R_power_t)*rho)/(scale_t*R_pow(arg,2))-( 0.5*R_power_t*R_power_s*sep*rho*R_pow(h/scale_s, R_power_s)*R_pow(u/scale_t, R_power_t)*R_pow(arg,-0.5*sep*R_power_s-2))/scale_t;
+    return(a);
+}
+// Derivatives with respect to the spatial scale parameter of the Gneiting correlation model:
+double DGneiting_sc_s(double h,double u,double R_power_s,double R_power_t,
+                      double scale_s,double scale_t,double sep)
+{
+    double arg=0.0,rho=0.0,a=0.0;
+    arg=1+R_pow(u/scale_t, R_power_t);
+    rho=exp(-R_pow(h/scale_s, R_power_s)/(R_pow(arg, 0.5*sep*R_power_s)))/arg;
+    a=(R_pow(h/scale_s, R_power_s)*R_power_s*rho*R_pow(arg,-0.5*R_power_s*sep-1))/scale_s;
+    return (a);
+}
+// Derivatives with respect to the separable parameter of the Gneiting correlation model:
+double DGneiting_sep(double h,double u, double R_power_s,double R_power_t,
+                     double scale_s,double scale_t,double sep)
+{
+    double a=0,arg=0,rho=0;
+    arg=1+R_pow(u/scale_t, R_power_t);
+    rho=exp(-R_pow(h/scale_s, R_power_s)*(R_pow(arg,- 0.5*sep*R_power_s)));
+    if(arg) a=0.5*R_pow(h/scale_s, R_power_s)*R_pow(arg,-0.5*sep*R_power_s-1)*R_power_s*rho*log(arg);
+    return(a);
+}
+// Derivatives with respect to spatial R_power of the Gneiting correlation model:
+double DGneiting_pw_s(double h,double u, double R_power_s,double R_power_t,
+                      double scale_s,double scale_t,double sep)
+{
+    double arg=0.0,rho=0.0,a=0.0;
+    arg=1+R_pow(u/scale_t, R_power_t);
+    rho=exp(-R_pow(h/scale_s, R_power_s)/(R_pow(arg, 0.5*sep*R_power_s)))/arg;
+    if(h && arg){a=(-R_pow(h/scale_s, R_power_s)*R_pow(arg,-0.5*sep*R_power_s)*log(h/scale_s) +
+                    0.5*R_pow(h/scale_s, R_power_s)*R_pow(arg,-0.5*sep*R_power_s)*sep*log(arg) )*rho;}
+    return(a);
+}
+
+// Derivatives with respect to temporal R_power of the Gneiting correlation model:
+double DGneiting_pw_t(double h,double u, double R_power_s,double R_power_t,
+                      double scale_s,double scale_t,double sep)
+{
+    double arg=0.0,rho=0.0,a=0.0;
+    arg=1+R_pow(u/scale_t, R_power_t);
+    rho=exp(-R_pow(h/scale_s, R_power_s)/(R_pow(arg, 0.5*sep*R_power_s)))/arg;
+    if(u){a=( -R_pow(u/scale_t, R_power_t)*log(u/scale_t)*rho+
+             0.5*rho*R_pow(h/scale_s, R_power_s)*R_power_s*sep*log(u/scale_t)*R_pow(arg,-0.5*sep*R_power_s))/arg;}
+    return(a) ;
+}*/
+
 
 // Derivatives with respect to scale of the Stable correlation model:
 double DStabSc(double lag, double power, double scale, double rho)
@@ -146,6 +200,7 @@ double CorFunStable(double lag, double power, double scale)
 
 double CorFct(int *cormod, double h, double u, double *par)
 {
+    //Rprintf("%f %f %f %f %f\n",par[0],par[1],par[2],par[3],par[4]);
     double arg=0.0,  power_s=0.0, power_t=0.0;
     double rho=0.0, sep=0,  scale_s=0.0, scale_t=0;
     
@@ -177,6 +232,7 @@ double CorFct(int *cormod, double h, double u, double *par)
 void GradCorrFct(double rho, int *cormod, int *flag,
                  double *grad, double h, double u,double *par)
 {
+    //Rprintf("%d %d %d %d %d\n",flag[0],flag[1],flag[2],flag[3],flag[4]);
     int i=0;
     double power_s=0, power_t=0;
     double scale_s=0, scale_t=0, sep=0;
@@ -257,7 +313,10 @@ void SeqStep(double *x, int len, double step, double *res)
 {
     int i=0;
     res[0]=x[0];
-    for(i=0;i<len;i++) res[i+1]=res[i]+step;
+    for(i=0;i<len;i++) {
+        res[i+1]=res[i]+step;
+    //    Rprintf("res[i]+step %f\n",res[i]+step);
+    }
     return;
 }
 /****************************************************************************************************************/
@@ -276,6 +335,7 @@ void SetSampling_s(int ncoord,int ntime,double *coordx, double *coordy, double *
         {
             scoordx[j]=coordx[i];
             scoordy[j]=coordy[i];
+            //Rprintf("%f %f\n",scoordx[j],scoordy[j]);
             for(h=0;h<ntime;h++)
             {
                 sdata[f]=data[h+ntime*i];f++;
@@ -381,6 +441,7 @@ void scalar_space(int *npts, int *ntime,double *coordt, double *maxtime,double *
 
 void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *winc, double *winstp,double *a, double *b,double *block_mean,int *weigthed, int *local_wi, int *dev)
 {
+    
     double   *rangex, *rangey;
     double *vv,*sdata,*xgrid,*ygrid,*scoordx,*scoordy;
     double *gradcor, *grad, *ww;
@@ -417,8 +478,11 @@ void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,in
     
     winstx=*winstp * dimwinx;     // x step is a  proportion of sub-window x length (deafult is 0.5)
     winsty=*winstp * dimwiny;     // y step is a  proportion of sub-window y length (deafult is 0.5)
-    numintx=floor((deltax-dimwinx)/winstx+1);   //number of overlapping sub-windows is  numintx+1 * numinty+1
-    numinty=floor((deltay-dimwiny)/winsty+1);
+    numintx=floor((deltax-dimwinx)/(winstx)+1);   //number of overlapping sub-windows is  numintx+1 * numinty+1
+    numinty=floor((deltay-dimwiny)/(winsty)+1);
+    
+    //Rprintf("X: %d  %f  %f  %f  %f  %f  %f\n",numintx,deltax,rangex[1],rangex[0],dimwinx,winstx,winstp[0]);
+    //Rprintf("Y: %d  %f  %f  %f  %f  %f\n",numinty,deltay,rangey[1],rangey[0],dimwiny,winsty);
     
     xgrid=(double *) R_alloc(numintx, sizeof(double));
     ygrid=(double *) R_alloc(numinty, sizeof(double));
@@ -439,6 +503,8 @@ void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,in
     
     nsub=0;
     n_win=numintx*numinty;   //// number of windows
+    //Rprintf("%d\n",n_win);
+    
     
     for(i=0;i<=numintx;i++)
     {
@@ -944,10 +1010,10 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
     for(i=0;i<wint;i++)
     {
         sublagt[i+1]=sublagt[i]+step;nstime++;
-        //printf("wint[%d]: %f\tnstime: %d\n",i,sublagt[i],nstime);
+        //Rprintf("wint[%d]: %f\tnstime: %d\n",i,sublagt[i],nstime);
     }
-    nsub=floor(((*ntime-wint)/winstp[0]+1));
-    //printf("nsub: %d\n",nsub);
+    nsub=floor((( (*ntime)-wint)/(wint*winstp[0])+1));
+    //Rprintf("nsub: %d %d %f\n",nsub,wint,winstp[0]);
     // vector of means for each window
     vector_mean= (double **) Calloc(npar[0],double *);
     for(i=0;i<npar[0];i++) vector_mean[i]=(double *) Calloc(nsub,double);
@@ -959,7 +1025,7 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
     //SetSampling_t(data,sdata,*ncoord,*ntime,wint,0);
     //for(i=0;i<*ncoord* *ntime;i++){printf("sdata[%d]: %f\n",i,sdata[i]);}
     
-    //printf("HASTA ");
+    
     for(i=0;i<nsub;i++)
     {//loop for the number of sub-sampling:
         mom_cond=(double *) Calloc(*npar,double);
@@ -971,7 +1037,7 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
         /*computing gradient in the window*/
         /******************************************/
         scalar_time(ncoord,&nstime,sublagt,cormod,parcor,flagcor,gradcor,flagnuis,grad,npar,nuis,sdata,weigthed,maxtime,ww,mom_cond,dist,coordx,coordy,maxdist);
-        //printf("%f\t%f\t%f\t%f\n",mom_cond[0],mom_cond[1],mom_cond[2],mom_cond[3]);
+        //Rprintf("%f\t%f\t%f\t%f\n",mom_cond[0],mom_cond[1],mom_cond[2],mom_cond[3]);
         
         /******************************************/
         /******************************************/
@@ -1066,7 +1132,7 @@ void SubSamp_time_DE_ocl(double *coordx, double *coordy,double *coordt, int *nco
         sublagt[i+1]=sublagt[i]+step;nstime++;
         //printf("wint[%d]: %f\n",i,sublagt[i]);
     }
-    nsub=floor(((*ntime-wint)/winstp[0]+1));
+    nsub=floor((( (*ntime)-wint)/(wint*winstp[0])+1));
     //printf("nsub: %d\n",nsub);
     // vector of means for each window
     vector_mean= (double **) Calloc(npar[0],double *);
@@ -1190,7 +1256,7 @@ void SubSamp_time_GN_ocl(double *coordx, double *coordy,double *coordt, int *nco
         sublagt[i+1]=sublagt[i]+step;nstime++;
         //printf("wint[%d]: %f\n",i,sublagt[i]);
     }
-    nsub=floor(((*ntime-wint)/winstp[0]+1));
+    nsub=floor((( (*ntime)-wint)/(wint*winstp[0])+1));
     //printf("nsub: %d\n",nsub);
     // vector of means for each window
     vector_mean= (double **) Calloc(npar[0],double *);
@@ -1365,6 +1431,8 @@ void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoor
 
 
 {
+    //Rprintf("A: %f %f\n",winc[0],winstp[0]);
+    
     double  beta, *rangex, *rangey;
     double *vv,*sdata,*s2data,*xgrid,*ygrid,*scoordx,*scoordy,*sublagt;
     double *gradcor,*grad,*ww;
@@ -1395,14 +1463,16 @@ void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoor
         winc[0]=sqrt(delta)/2;
     }
     if(!winstp[0]) winstp[0]=0.5;   //proportion of the overlapping  0< winstp <=1
-    //Rprintf("%f\n",winstp[0]);
+    //Rprintf("B: %f %f\n",winc[0],winstp[0]);
     dimwinx=winc[0] * sqrt(deltax);// sub-window x length depends on a constant: deafault??
     dimwiny=winc[0] * sqrt(deltay);// sub-window y length depends on a constant: deafault??
+    //Rprintf("C:%f %f %f %f %f %f\n",dimwinx,dimwiny,winc[0],winstp[0],deltax,deltay);
     
     winstx=*winstp * dimwinx;     // x step is a  proportion of sub-window x length (deafult is 0.5)
     winsty=*winstp * dimwiny;     // y step is a  proportion of sub-window y length (deafult is 0.5)
     numintx=floor((deltax-dimwinx)/winstx+1);   //number of overlapping sub-windows is  numintx+1 * numinty+1
     numinty=floor((deltay-dimwiny)/winsty+1);
+    //Rprintf("C:%f %f %f %f %f %f %f %f\n",dimwinx,dimwiny,winc[0],winstp[0],deltax,deltay,numintx,numinty);
     
     xgrid=(double *) R_alloc(numintx, sizeof(double));
     ygrid=(double *) R_alloc(numinty, sizeof(double));
@@ -1430,7 +1500,8 @@ void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoor
     {
         sublagt[i+1]=sublagt[i]+step;nstime++;
     }
-    nsub_t=floor(((*ntime-wint)/winstp[0]+1));
+    nsub_t=floor(((*ntime-wint)/(wint*winstp_t[0])+1));
+    //Rprintf("%d %d\n",nsub_t,floor(((*ntime-wint)/(winstp_t[0])+1)));
     
     
     // vector of means for each window
@@ -1446,6 +1517,7 @@ void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoor
     
     nsub=0;
     n_win=numintx*numinty;
+    //Rprintf("%d %d %d %f\n",nsub_t,n_win,nsub_t*n_win,winstp_t[0]);
     for(i=0;i<=numintx;i++)
     {
         for(j=0;j<=numinty;j++)
@@ -1612,7 +1684,7 @@ void SubSamp_spacetime_DE_ocl(double *coordx, double *coordy,double *coordt, int
     {
         sublagt[i+1]=sublagt[i]+step;nstime++;
     }
-    nsub_t=floor(((*ntime-wint)/winstp[0]+1));
+    nsub_t=floor(((*ntime-wint)/(wint*winstp_t[0])+1));
     
     
     // vector of means for each window
@@ -1793,7 +1865,7 @@ void SubSamp_spacetime_GN_ocl(double *coordx, double *coordy,double *coordt, int
     {
         sublagt[i+1]=sublagt[i]+step;nstime++;
     }
-    nsub_t=floor(((*ntime-wint)/winstp[0]+1));
+    nsub_t=floor(((*ntime-wint)/(wint*winstp_t[0])+1));
     
     
     // vector of means for each window

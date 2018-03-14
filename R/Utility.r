@@ -49,22 +49,24 @@ DevOpenCL <- function()
 #######################################################################
 setting_param<-function(cc,theta,fix)
 {
-  
+  param <- c(theta,fix)
   if(cc==1){      ### double exponential model
     npar=length(theta)
-    parcor=c(theta[3],theta[4])      #corr parameters
+    parcor=c(param["scale_s"],param["scale_t"])      #corr parameters
     flagcor=c(1,1) 
-    nuis=c(theta[1],fix[1],theta[2])   #mean, nugget, sill
-    flagnuis=c(1,0,1)
+    nuis=c(param["mean"],param["nugget"],param["sill"])   #mean, nugget, sill
+    #flagnuis=c(1,0,1)
+    flagnuis=c(0,0,1)
     nparc=sum(flagcor)  
     nparnuis=sum(flagnuis)
   }
   if(cc==2){       ### gneiting model
     npar=length(theta)
-    parcor=c(fix[2],fix[3],theta[3],theta[4],fix[4])     #corr parameters  
+    parcor=c(param["power_s"],param["power_t"],param["scale_s"],param["scale_t"],param["sep"])     #corr parameters
     flagcor=c(0,0,1,1,0) 
-    nuis=c(theta[1],fix[1],theta[2])   #mean, nugget, sill
-    flagnuis=c(1,0,1)
+    nuis=c(param["mean"],param["nugget"],param["sill"])   #mean, nugget, sill
+    # flagnuis=c(1,0,1)
+    flagnuis=c(0,0,1) 
     nparc=sum(flagcor)  
     nparnuis=sum(flagnuis)
   }

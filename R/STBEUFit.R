@@ -13,6 +13,7 @@ STBEUFit<-function(theta,fix,coords,times,cc,data,type_dist,maxdist,maxtime, win
                        winc_t,winstp_t,subs,weighted,local=c(1,1),GPU=NULL)             
 {
   path.parent <- getwd()
+  model = cc
   if(!is.null(GPU)) 
   {
     if (model ==1) kernel = "DouExp.cl"
@@ -37,9 +38,8 @@ STBEUFit<-function(theta,fix,coords,times,cc,data,type_dist,maxdist,maxtime, win
   }
   coordx=coords[,1];coordy=coords[,2];ncoords=nrow(coords);ntime=length(times)
   npar=length(theta)
-  
   ## optimization
-  res=optim(theta,fix=fix,eucl_st_ocl,coordx=coordx,coordy=coordy,ncoords=ncoords,
+  res=optim(par =theta,fix=fix,fn = eucl_st_ocl,coordx=coordx,coordy=coordy,ncoords=ncoords,
             times=times,ntime=ntime,cc=cc,data=data,type_dist=type_dist,maxdist= maxdist,
             maxtime=maxtime,winc_s=winc_s,winstp_s=winstp_s,winc_t=winc_t,winstp_t=winstp_t,
             weighted=weighted,type_sub=type_sub,local = local, GPU = GPU,control=list(maxit=1000))
@@ -58,17 +58,19 @@ eucl_st_ocl<-function(theta,fix,coordx,coordy,ncoords,times,ntime,cc,data,type_d
 {
   
   setup=setting_param(cc,theta,fix)
+  # cat("length nuis",length(setup$nuis),"length parcor",length(setup$parcor),"\n")
+  # print(setup$parcor)
   if(cc == 1)
   {
-    if(setup$parcor[1] <0 | setup$parcor[2]<0){
+    if(setup$parcor[1] <0 | setup$parcor[2]<0 | setup$nuis[3]<0 ){
       obj = 1e100
       return (obj)}
   }
   if(cc ==2)
   {
-    if(setup$parcor[1] <0 |setup$parcor[1] >1 | setup$parcor[2]<0 | setup$parcor[2]>1| setup$parcor[3]<0  | setup$parcor[4]<0 
-       | setup$parcor[5]<0 |setup$parcor[5]>1){
-      obj = 1e1000
+    if(setup$parcor[1] <0 |setup$parcor[1] >1 | setup$parcor[2]<0 | setup$parcor[2]>1| setup$parcor[3]<=0  | setup$parcor[4]<=0 
+       | setup$parcor[5]<0 |setup$parcor[5]>1 | setup$nuis[3]<0){
+      obj = 1e100
       return (obj)}
   }
   
@@ -76,6 +78,8 @@ eucl_st_ocl<-function(theta,fix,coordx,coordy,ncoords,times,ntime,cc,data,type_d
   
   means=double(setup$npar)                               ## vector of means
   
+  # if(setup$nuis[1]<0 | setup$nuis[2]<0 | setup$nuis[3]<0) print(setup$nuis)
+  # print(type_sub)
   p=.C(type_sub,as.double(coordx), as.double(coordy), as.double(times),as.integer(ncoords),
        as.integer(ntime),as.integer(cc), as.double(data),as.integer(type_dist),as.double(maxdist),
        as.double(maxtime),as.integer(setup$npar),as.double(setup$parcor),as.integer(setup$nparc),
@@ -91,7 +95,8 @@ eucl_st_ocl<-function(theta,fix,coordx,coordy,ncoords,times,ntime,cc,data,type_d
   Fchol = MatDecomp(F,"cholesky")
   if(length(Fchol)==1)
   {
-    #print(F)
+    # print("Fchol dont work")
+    # print(F)
     Fchol = MatDecomp(F,"svd")
     inv = MatInv(Fchol,"svd")
     obj= crossprod(crossprod(inv, x), x)

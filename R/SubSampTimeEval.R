@@ -74,7 +74,6 @@ SubSampTimeEval<-function(theta,fix,coords,times,cc,data,type_dist,maxdist,maxti
     if(subs==1) type_sub="SubSamp_space"
     if(subs==2) type_sub="SubSamp_time"
     if(subs==3) type_sub="SubSamp_spacetime"
-    
     tCPU = proc.time()
     res2=.C(type_sub,as.double(coordx), as.double(coordy), as.double(times),as.integer(ncoords),as.integer(ntime),as.integer(cc), as.double(data),as.integer(type_dist),as.double(maxdist),as.double(maxtime),as.integer(setup$npar),as.double(setup$parcor),as.integer(setup$nparc),
          as.double(setup$nuis),as.integer(setup$nparnuis),
@@ -106,6 +105,7 @@ SubSampTimeEval<-function(theta,fix,coords,times,cc,data,type_dist,maxdist,maxti
  setwd(path.parent)
  partime = list(ncoords = ncoords, ntime = ntime, maxdist = maxdist, maxtime = maxtime,
                 winc_s=winc_s,winstp_s=winstp_s,winc_t=winc_t,winstp_t=winstp_t,subs=subs) #time evaluation parameters
+ if(is.null(GPU)) tGPU =tCPU
  if(tGPU[3]<tCPU[3]) ti = "OpenCL" else ti = "CPU"
  return(list(cpupar_eval = res2$mm,openclpar_eval=res1$mm,
              CPU_time=tCPU,OCL_time = tGPU, difftime = abs(tCPU-tGPU), faster = ti,partime=partime))
