@@ -14,6 +14,13 @@ STBEUFit<-function(theta,fix,coords,times,cc,data,type_dist,maxdist,maxtime, win
 {
   path.parent <- getwd()
   model = cc
+
+  nsub_t=floor((( length(times)-winc_t)/(winc_t*winstp_t)+1))
+  if(subs==2 && nsub_t<=2)
+  {
+    cat("Number of temporal blocks is: ",nsub_t,"\n")
+    stop("Number of temporal windows must be greater than 2, check winc_t parameter. START values are printed. We recommend 5 blocks or more")
+  }
   if(!is.null(GPU)) 
   {
     if (model ==1) kernel = "DouExp.cl"
@@ -56,7 +63,7 @@ eucl_st_ocl<-function(theta,fix,coordx,coordy,ncoords,times,ntime,cc,data,type_d
                       winc_s,winstp_s,winc_t,winstp_t,weighted,type_sub,local,GPU)
   
 {
-  
+  # print(theta)
   setup=setting_param(cc,theta,fix)
   # cat("length nuis",length(setup$nuis),"length parcor",length(setup$parcor),"\n")
   # print(setup$parcor)
@@ -88,14 +95,23 @@ eucl_st_ocl<-function(theta,fix,coordx,coordy,ncoords,times,ntime,cc,data,type_d
        mm=as.double(means),as.integer(weighted),as.integer(local),as.integer(GPU))
   
   x=p$mm       #means vector
-  #print(x)
+  # print(theta)
+  # print(x=p$mm)
+  # if(cc == 1)
+  # {
+  #   if(p$mm[1] <0 | p$mm[2]<0 | p$mm[3]<0 ){
+  #     obj = 1e100
+  #     return (obj)}
+  # }
+  
+  # cat("\n\nAntes de: ",x,"\n\n")
   F=xpnd(p$vv) #cov matrix
   #print(F)
   #F <- matrix(c(-1,0,0,1),ncol=2)
   Fchol = MatDecomp(F,"cholesky")
   if(length(Fchol)==1)
   {
-    # print("Fchol dont work")
+    # cat("\n\n\nFchol don't work: ",x,"\n\n\n")
     # print(F)
     Fchol = MatDecomp(F,"svd")
     inv = MatInv(Fchol,"svd")
@@ -107,7 +123,7 @@ eucl_st_ocl<-function(theta,fix,coordx,coordy,ncoords,times,ntime,cc,data,type_d
     inv=chol2inv(Fchol)  #inverse   
     obj= crossprod(crossprod(inv, x), x)# quadratic form
   }
-  #print(obj)
+  # cat("\nOBJ: ",obj,"\n")
   return(obj)  
   
   

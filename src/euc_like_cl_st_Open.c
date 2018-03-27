@@ -905,6 +905,7 @@ void scalar_time(int *ncoord,int *nstime,double *sublagt,int *cormod,double *par
     int l= 0, t=0, m=0, v=0,kk=0;
     double lags=0.0,lagt=0.0,rho=0.0;
     
+    
     for(l=0;l<ncoord[0];l++)
     {
         for(t=0;t<nstime[0];t++)
@@ -983,6 +984,10 @@ void scalar_time(int *ncoord,int *nstime,double *sublagt,int *cormod,double *par
 
 void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *a, double *b,double *winc, double *winstp,double *block_mean,int *weigthed,int *local_wi, int *dev)
 {
+    //Rprintf("mean: %f nugget: %f sill: %f scale_s: %f scale_t: %f\n",nuis[0],nuis[1],nuis[2],parcor[0],parcor[1]);
+    //if(nuis[1]<0||nuis[2]<0 || parcor[0]<0 ||parcor[1]<0) {*res=1e100;  return;}
+    //if(nuis[2]<0 ){return;}
+    
     double beta, *gradcor;
     double *vv,*ww,*sdata, *grad, *sublagt;
     double **tot,*mom_cond,**vector_mean;    //matrix moments conditions
@@ -1013,6 +1018,11 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
         //Rprintf("wint[%d]: %f\tnstime: %d\n",i,sublagt[i],nstime);
     }
     nsub=floor((( (*ntime)-wint)/(wint*winstp[0])+1));
+    /*if(nsub<=2)
+    {
+        Rprintf("Number of temporal windows must be greater than 2, check winc_t parameter. START values are printed\n");
+        return;
+    }*/
     //Rprintf("nsub: %d %d %f\n",nsub,wint,winstp[0]);
     // vector of means for each window
     vector_mean= (double **) Calloc(npar[0],double *);
@@ -1037,7 +1047,12 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
         /*computing gradient in the window*/
         /******************************************/
         scalar_time(ncoord,&nstime,sublagt,cormod,parcor,flagcor,gradcor,flagnuis,grad,npar,nuis,sdata,weigthed,maxtime,ww,mom_cond,dist,coordx,coordy,maxdist);
-        //Rprintf("%f\t%f\t%f\t%f\n",mom_cond[0],mom_cond[1],mom_cond[2],mom_cond[3]);
+        
+        /*if(mom_cond[0]<0 || mom_cond[1]<0 ||mom_cond[2]<0)
+        {
+            Rprintf("%f\t%f\t%f\n",mom_cond[0],mom_cond[1],mom_cond[2]);
+        }*/
+        
         
         /******************************************/
         /******************************************/
@@ -1057,9 +1072,14 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
     {
         for(kk=0;kk<*npar;kk++)
         {
-            block_mean[kk]= block_mean[kk]+ vector_mean[kk][q]/nsub;;
+            block_mean[kk]= block_mean[kk]+ vector_mean[kk][q]/nsub;
+            /*if(block_mean[kk]<0)
+            {
+                Rprintf("block_mean[kk]: %f vector_mean[kk][q]: %f kk: %d\n",block_mean[kk],vector_mean[kk][q],kk);
+            }*/
         }
     }
+    //if(block_mean[0]<0 ){return;}
     for(q=0;q<nsub ;q++)
     {
         for(kk=0;kk<*npar;kk++)
@@ -1096,6 +1116,7 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
     }
     Free(vector_mean);
     Free(tot);
+    
     
     return;
 }
