@@ -180,7 +180,7 @@ spatial Gaussian RFs
 
 
 \author{Moreno Bevilacqua, \email{moreno.bevilacqua@uv.cl},\url{https://sites.google.com/a/uv.cl/moreno-bevilacqua/home},
-Víctor Morales Oñate, \email{victor.morales@uv.cl}
+Víctor Morales Oñate, \email{victor.morales@uv.cl}, \url{https://sites.google.com/site/moralesonatevictor/}
 }
   
 \examples{
@@ -190,7 +190,7 @@ Víctor Morales Oñate, \email{victor.morales@uv.cl}
 
 rm(list=ls())
 ########################R package#######################
-require(CompRandFld)
+require(GeoModels)
 require(MCMCpack)
 require(STBEU)
 ####location sites ########################################
@@ -201,7 +201,7 @@ coords=as.matrix(expand.grid(xx,xx))   ###regular
 #set.seed(15)                                                                      ### not regular
 #pp<-runifpoint(4*(lambda)^2, win=owin(c(-lambda,lambda),c(-lambda,lambda)))       ### not regular
 #coords<-cbind(pp$x,pp$y)  
-                                                        ### not regular
+### not regular
 ####temporal instants ########################################
 times=seq(1,5,1)
 ##################################################################
@@ -214,53 +214,37 @@ maxtime=2
 model=1  #   1=double exponential       2 =gneiting
 
 if (model == 1) {
-     # exponential model
-     cov.model <-"exp_exp"
-     cc=1
-     #####
-     mean=0
-     nugget=0
-     scale_s<-3/3
-     scale_t<-3/3
-     sill=1
-     param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
-     fixed=list(nugget=0)
-     fix=nugget
-   }
-if (model == 2) {
-     # gneiting model
-     cov.model <-"gneiting"
-     cc=2
-     #####
-     mean=0
-     nugget=0
-     scale_s<-3/3
-     scale_t<-3/20
-     sill=1
-     power_s=1;power_t=1;sep=0.5
-     param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill,
-                power_s=power_s,power_t=power_t,sep=sep)  
-     fixed=list(nugget=0,power_s=power_s,power_t=power_t,sep=sep)  
-     fix=c(nugget, power_s, power_t,sep) 
+  # exponential model
+  cov.model <-"exp_exp"
+  cc=1
+  #####
+  mean=0
+  nugget=0
+  scale_s<-1.5/3
+  scale_t<-1.5/3
+  sill=1
+  param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
+  fixed=list(nugget=0)
+  fix=c(nugget=nugget)
 }
 ##################################################################
 set.seed(276)
 #####################################################################################################      
 # Simulation of the spatial Gaussian random field:
-data <- RFsim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
+data <- GeoSim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
 mm=mean(c(data))
 vv=var(c(data))
 ###### Composite likelihood based on pairs estimation ###############################################     
-     
+
 start=list(mean=mm,scale_s=scale_s,scale_t=scale_t,sill=vv)
 # Maximum composite-likelihood fitting of the random field:
-fit <- FitComposite(data=data,coordx=coords,coordt=times,
+fit <- GeoFit(data=data,coordx=coords,coordt=times,
                     corrmodel=cov.model,maxtime=maxtime,maxdist=maxdist,
                     likelihood="Marginal",type="Pairwise",
-                    start=start,fixed=fixed,weighted=T)
+                    start=start,fixed=fixed,weighted=TRUE)
 # Results:
 print(fit$param)
-start
+unlist(start)
 ################################################
 #   parameters for the subsampling ####
 ###############################################
@@ -277,7 +261,7 @@ winstp= 1  ###   1/lato_fin complete overlapping   1 "no" overlapping
 ###############################################
 
 #####################################################################################################      
-theta=c(mm,vv,scale_s,scale_t)                #starting value  
+theta=start                #starting value  
 
 weighted=0
 ### eucliden likelihood ################ 
@@ -290,16 +274,9 @@ eu_par=c(res$par[1],res$par[3],res$par[4],res$par[2])
 names(eu_par)=names(fit$param)
 print(eu_par)
 
-### OpenCL eucliden likelihood ################ 
-local <- c(1,1)
-GPU <- 0
-tGPU = proc.time()
-res1=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,winc,winstp,0,0,type_subs,weighted, local=local, GPU = GPU)
-tGPU = proc.time()-tGPU;tGPU
-eu_par1=c(res1$par[1],res1$par[3],res1$par[4],res1$par[2])
-names(eu_par1)=names(fit$param)
-print(eu_par1)
-tCPU;tGPU
+res=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,winc,winstp,0,0,type_subs,weighted,varest =TRUE)
+
+
 
 
 
@@ -315,7 +292,7 @@ rm(list=ls())
 
 
 ########################R package#######################
-require(CompRandFld)
+require(GeoModels)
 require(MCMCpack)
 require(STBEU)
 ####location sites ########################################
@@ -340,20 +317,6 @@ maxtime=2
 
 model=2  #   1=double exponential       2 =gneiting
 
-if (model == 1) {
-  # exponential model
-  cov.model <-"exp_exp"
-  cc=1
-  #####
-  mean=0
-  nugget=0
-  scale_s<-3/3
-  scale_t<-3/3
-  sill=1
-  param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
-  fixed=list(nugget=0)
-  fix=nugget
-}
 if (model == 2) {
   # gneiting model
   cov.model <-"gneiting"
@@ -361,21 +324,21 @@ if (model == 2) {
   #####
   mean=0
   nugget=0
-  scale_s<-3/3
-  scale_t<-3/20
-  sill=1
+  scale_s<-1.5/3
+  scale_t<-1.5/20
+  sill=4
   power_s=1;power_t=1;sep=0.5
   param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill,
              power_s=power_s,power_t=power_t,sep=sep)  
   fixed=list(nugget=0,power_s=power_s,power_t=power_t,sep=sep)  
-  fix=c(nugget, power_s, power_t,sep) 
+  fix=c(nugget = nugget, power_s = power_s, power_t = power_t,sep = sep) 
 }
 ##################################################################
 
 set.seed(276)
 ##################################################################
 # Simulation of the spatial Gaussian random field:
-data <- RFsim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
+data <- GeoSim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
 mm=mean(c(data))
 vv=var(c(data))
 ###################################################################
@@ -385,13 +348,13 @@ vv=var(c(data))
 
 start=list(mean=mm,scale_s=scale_s,scale_t=scale_t,sill=vv)
 # Maximum composite-likelihood fitting of the random field:
-fit <- FitComposite(data=data,coordx=coords,coordt=times,
+fit <- GeoFit(data=data,coordx=coords,coordt=times,
                     corrmodel=cov.model,maxtime=maxtime,maxdist=maxdist,
                     likelihood="Marginal",type="Pairwise",
-                    start=start,fixed=fixed,weighted=T)
+                    start=start,fixed=fixed,weighted=TRUE)
 # Results:
 print(fit$param)
-start
+unlist(start)
 ################################################
 #   parameters for the subsampling ####
 ###############################################
@@ -408,7 +371,7 @@ winc=c(lx/sqrt(LX),ly/sqrt(LY))
 winstp= 1  ###   1/lato_fin complete overlapping   1 "no" overlapping
 ###############################################
 ###############################################     
-theta=c(mm,vv,scale_s,scale_t)                #starting value  
+theta=start                #starting value  
 
 weighted=0
 ### eucliden likelihood ################ 
@@ -421,19 +384,7 @@ names(eu_par)=names(fit$param)
 print(eu_par)
 
 
-### OpenCL eucliden likelihood ################ 
-local <- c(1,1)
-GPU <- 0
-tGPU = proc.time()
-res1=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,winc,winstp,0,0,type_subs,weighted, local=local, GPU = GPU)
-tGPU = proc.time()-tGPU;tGPU
-eu_par1=c(res1$par[1],res1$par[3],res1$par[4],res1$par[2])
-names(eu_par1)=names(fit$param)
-print(eu_par1)
-tCPU;tGPU
-
-
-
+res=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,winc,winstp,0,0,type_subs,weighted,varest = TRUE)
 
 
 
@@ -444,7 +395,7 @@ tCPU;tGPU
 #=======================Double Exponential=======================#
 rm(list=ls())
 ########################R package#######################
-require(CompRandFld)
+require(GeoModels)
 require(MCMCpack)
 require(STBEU)
 ####location sites ########################################
@@ -452,11 +403,11 @@ lambda=2
 xx=seq(-lambda,lambda);
 coords=as.matrix(expand.grid(xx,xx))   ###regular
 nrow(coords)
- 
+
 #set.seed(15)                                                                      ### not regular
 #pp<-runifpoint(4*(lambda)^2, win=owin(c(-lambda,lambda),c(-lambda,lambda)))       ### not regular
 #coords<-cbind(pp$x,pp$y)  
-                                                        ### not regular
+### not regular
 ####temporal instants ########################################
 times=seq(1,100,1)
 
@@ -469,39 +420,23 @@ maxtime=2
 model=1  #   1=double exponential       2 =gneiting
 
 if (model == 1) {
-     # exponential model
-     cov.model <-"exp_exp"
-     cc=1
-     #####
-     mean=0
-     nugget=0
-     scale_s<-3/3
-     scale_t<-3/3
-     sill=1
-     param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
-     fixed=list(nugget=0)
-     fix=nugget
-   }
-if (model == 2) {
-     # gneiting model
-     cov.model <-"gneiting"
-     cc=2
-     #####
-     mean=0
-     nugget=0
-     scale_s<-3/3
-     scale_t<-3/20
-     sill=1
-     power_s=1;power_t=1;sep=0.5
-     param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill,
-                power_s=power_s,power_t=power_t,sep=sep)  
-     fixed=list(nugget=0,power_s=power_s,power_t=power_t,sep=sep)  
-     fix=c(nugget, power_s, power_t,sep)  
+  # exponential model
+  cov.model <-"exp_exp"
+  cc=1
+  #####
+  mean=0
+  nugget=0
+  scale_s<-1.5/3
+  scale_t<-1.5/3
+  sill=4
+  param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
+  fixed=list(nugget=0)
+  fix=c(nugget = nugget)
 }
 ##################################################################
 ##################################################################
 # Simulation of the spatial Gaussian random field:
-data <- RFsim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
+data <- GeoSim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
 mm=mean(c(data))
 vv=var(c(data))
 ###################################################################
@@ -509,15 +444,15 @@ vv=var(c(data))
 ###### Composite likelihood based on pairs estimation #############
 start=list(mean=mm,scale_s=scale_s,scale_t=scale_t,sill=vv)
 # Maximum composite-likelihood fitting of the random field:
-fit <- FitComposite(data=data,coordx=coords,coordt=times,
+fit <- GeoFit(data=data,coordx=coords,coordt=times,
                     corrmodel=cov.model,maxtime=maxtime,maxdist=maxdist,
                     likelihood="Marginal",type="Pairwise",
-                    start=start,fixed=fixed,weighted=T)
+                    start=start,fixed=fixed,weighted=TRUE)
 
 
 # Results:
 print(fit$param)
-
+unlist(start)
 ################################################
 #   parameters for the temporal subsampling ####
 ###############################################
@@ -527,7 +462,7 @@ winstp=1 ###   0.5 half overlapping  1 "no" overlapping
 ###############################################
 
 #################################################################
-theta=c(mm,vv,scale_s,scale_t)                #starting value 
+theta=start                #starting value 
 weighted=0
 ### eucliden likelihood ################ 
 type_subs=2    ### type of subsampling  1=in space    2= in time
@@ -538,28 +473,14 @@ eu_par=c(res$par[1],res$par[3],res$par[4],res$par[2])
 names(eu_par)=names(fit$param)
 print(eu_par)
 
-### OpenCL eucliden likelihood ################ 
-local <- c(1,1)
-GPU <- 0
-tGPU = proc.time()
-res1=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,0,0,winc,winstp,type_subs,weighted, local=local, GPU = GPU)
-tGPU = proc.time()-tGPU;tGPU
-eu_par1=c(res1$par[1],res1$par[3],res1$par[4],res1$par[2])
-names(eu_par1)=names(fit$param)
-print(eu_par1)
-tCPU;tGPU
-
-
-
-
-
+res=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,0,0,winc,winstp,type_subs,weighted,varest = TRUE)
 
 
 #=======================Gneiting=======================#
 
 rm(list=ls())
 ########################R package#######################
-require(CompRandFld)
+require(GeoModels)
 require(MCMCpack)
 require(STBEU)
 ####location sites ########################################
@@ -582,20 +503,6 @@ maxtime=2
 ##################################################################
 model=2  #   1=double exponential       2 =gneiting
 
-if (model == 1) {
-  # exponential model
-  cov.model <-"exp_exp"
-  cc=1
-  #####
-  mean=0
-  nugget=0
-  scale_s<-3/3
-  scale_t<-3/3
-  sill=1
-  param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
-  fixed=list(nugget=0)
-  fix=nugget
-}
 if (model == 2) {
   # gneiting model
   cov.model <-"gneiting"
@@ -603,19 +510,19 @@ if (model == 2) {
   #####
   mean=0
   nugget=0
-  scale_s<-3/3
-  scale_t<-3/20
-  sill=1
+  scale_s<-1.5/3
+  scale_t<-1.5/20
+  sill=4
   power_s=1;power_t=1;sep=0.5
   param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill,
              power_s=power_s,power_t=power_t,sep=sep)  
   fixed=list(nugget=0,power_s=power_s,power_t=power_t,sep=sep)  
-  fix=c(nugget, power_s, power_t,sep)  
+  fix=c(nugget = nugget, power_s = power_s, power_t = power_t,sep = sep)  
 }
 ##################################################################
 ##################################################################
 # Simulation of the spatial Gaussian random field:
-data <- RFsim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
+data <- GeoSim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
 mm=mean(c(data))
 vv=var(c(data))
 ###################################################################
@@ -624,15 +531,15 @@ vv=var(c(data))
 ###### Composite likelihood based on pairs estimation #############
 start=list(mean=mm,scale_s=scale_s,scale_t=scale_t,sill=vv)
 # Maximum composite-likelihood fitting of the random field:
-fit <- FitComposite(data=data,coordx=coords,coordt=times,
+fit <- GeoFit(data=data,coordx=coords,coordt=times,
                     corrmodel=cov.model,maxtime=maxtime,maxdist=maxdist,
                     likelihood="Marginal",type="Pairwise",
-                    start=start,fixed=fixed,weighted=T)
+                    start=start,fixed=fixed,weighted=TRUE)
 
 
 # Results:
 print(fit$param)
-
+unlist(start)
 ################################################
 #   parameters for the temporal subsampling ####
 ###############################################
@@ -640,7 +547,7 @@ print(fit$param)
 winc=4    ###  length of temporal window
 winstp=1 ###   0.5 half overlapping  1 "no" overlapping
 ###############################################
-theta=c(mm,vv,scale_s,scale_t)                #starting value 
+theta=start               #starting value 
 weighted=0
 ### eucliden likelihood ################ 
 type_subs=2    ### type of subsampling  1=in space    2= in time
@@ -651,20 +558,8 @@ eu_par=c(res$par[1],res$par[3],res$par[4],res$par[2])
 names(eu_par)=names(fit$param)
 print(eu_par)
 
-### OpenCL eucliden likelihood ################ 
-local <- c(1,1)
-GPU <- 0
-tGPU = proc.time()
-res1=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,0,0,winc,winstp,type_subs,weighted, local=local, GPU = GPU)
-tGPU = proc.time()-tGPU;tGPU
-eu_par1=c(res1$par[1],res1$par[3],res1$par[4],res1$par[2])
-names(eu_par1)=names(fit$param)
-print(eu_par1)
-tCPU;tGPU
 
-
-
-
+res=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,0,0,winc,winstp,type_subs,weighted,varest = TRUE)
 
 
 
@@ -681,7 +576,7 @@ tCPU;tGPU
 #=======================Double Exponential=======================#
 rm(list=ls())
 ########################R package#######################
-require(CompRandFld)
+require(GeoModels)
 require(MCMCpack)
 require(STBEU)
 ####location sites ########################################
@@ -693,7 +588,7 @@ nrow(coords)
 #set.seed(15)                                                                      ### not regular
 #pp<-runifpoint(4*(lambda)^2, win=owin(c(-lambda,lambda),c(-lambda,lambda)))       ### not regular
 #coords<-cbind(pp$x,pp$y)  
-                                                        ### not regular
+### not regular
 ####temporal instants ########################################
 times=seq(1,5,1)
 
@@ -705,40 +600,25 @@ maxtime=2
 model=1  #   1=double exponential       2 =gneiting
 
 if (model == 1) {
-     # exponential model
-     cov.model <-"exp_exp"
-     cc=1
-     #####
-     mean=0
-     nugget=0
-     scale_s<-3/3
-     scale_t<-3/3
-     sill=1
-     param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
-     fixed=list(nugget=0)
-     fix=nugget
-   }
-if (model == 2) {
-     # gneiting model
-     cov.model <-"gneiting"
-     cc=2
-     #####
-     mean=0
-     nugget=0
-     scale_s<-3/3
-     scale_t<-3/20
-     sill=1
-     power_s=1;power_t=1;sep=0.5
-     param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill,
-                power_s=power_s,power_t=power_t,sep=sep)  
-     fixed=list(nugget=0,power_s=power_s,power_t=power_t,sep=sep)   
-     fix=c(nugget, power_s, power_t,sep) 
+  # exponential model
+  cov.model <-"exp_exp"
+  cc=1
+  #####
+  mean=0
+  nugget=0
+  scale_s<-1.5/3
+  scale_t<-1.5/3
+  sill=4
+  param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
+  fixed=list(nugget=0)
+  fix=c(nugget = nugget)
 }
+
 ##################################################################
 set.seed(276)
 ##################################################################
 # Simulation of the  Gaussian random field:
-data <- RFsim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
+data <- GeoSim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
 ##################################################################
 mm=mean(c(data))
 vv=var(c(data))
@@ -746,13 +626,14 @@ vv=var(c(data))
 start=list(mean=mm,scale_s=scale_s,scale_t=scale_t,sill=vv)
 
 # Maximum composite-likelihood fitting of the random field:
-fit <- FitComposite(data=data,coordx=coords,coordt=times,
+fit <- GeoFit(data=data,coordx=coords,coordt=times,
                     corrmodel=cov.model,maxtime=maxtime,maxdist=maxdist,
                     likelihood="Marginal",type="Pairwise",
-                    start=start,fixed=fixed,weighted=T)
+                    start=start,fixed=fixed,weighted=TRUE)
 
 # Results:
 print(fit$param)
+unlist(start)
 ################################################
 #   parameters for the subsampling ####
 ###############################################
@@ -770,7 +651,7 @@ winc_t=4   ###  length of temporal window
 winstp_t=1 ###   0.5 half overlapping  1 "no" overlapping
 ###############################################
 
-theta=c(mm,vv,scale_s,scale_t)                #starting value  
+theta=start                #starting value  
 weighted=0                                          #weigthed version  1=yes 0=no
 ### eucliden likelihood ################ 
 type_subs=3   ### type of subsampling  1=in space    2= in time  3 =spacetime
@@ -781,19 +662,7 @@ eu_par=c(res$par[1],res$par[3],res$par[4],res$par[2])
 names(eu_par)=names(fit$param)
 print(eu_par)
 
-
-### OpenCL eucliden likelihood ################ 
-local <- c(1,1)
-GPU <- 0
-tGPU = proc.time()
-res1=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,winc,winstp,winc_t,winstp_t,type_subs,weighted, local = local, GPU = GPU)
-tGPU = proc.time()-tGPU;tGPU
-eu_par1=c(res1$par[1],res1$par[3],res1$par[4],res1$par[2])
-names(eu_par1)=names(fit$param)
-print(eu_par1)
-tCPU;tGPU
-
-
+res=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,winc,winstp,winc_t,winstp_t,type_subs,weighted,varest = TRUE)
 
 
 
@@ -803,7 +672,7 @@ tCPU;tGPU
 
 rm(list=ls())
 ########################R package#######################
-require(CompRandFld)
+require(GeoModels)
 require(MCMCpack)
 require(STBEU)
 ####location sites ########################################
@@ -825,20 +694,7 @@ maxtime=2
 ##################################################################
 model=2  #   1=double exponential       2 =gneiting
 
-if (model == 1) {
-  # exponential model
-  cov.model <-"exp_exp"
-  cc=1
-  #####
-  mean=0
-  nugget=0
-  scale_s<-3/3
-  scale_t<-3/3
-  sill=1
-  param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill)  
-  fixed=list(nugget=0)
-  fix=nugget
-}
+
 if (model == 2) {
   # gneiting model
   cov.model <-"gneiting"
@@ -846,20 +702,20 @@ if (model == 2) {
   #####
   mean=0
   nugget=0
-  scale_s<-3/3
-  scale_t<-3/20
-  sill=1
+  scale_s<-1.5/3
+  scale_t<-1.5/20
+  sill=4
   power_s=1;power_t=1;sep=0.5
   param=list(nugget=nugget,mean=mean,scale_t=scale_t,scale_s=scale_s,sill=sill,
              power_s=power_s,power_t=power_t,sep=sep)  
   fixed=list(nugget=0,power_s=power_s,power_t=power_t,sep=sep)   
-  fix=c(nugget, power_s, power_t,sep) 
+  fix=c(nugget = nugget, power_s = power_s, power_t = power_t,sep=sep) 
 }
 ##################################################################
 set.seed(276)
 ##################################################################
 # Simulation of the  Gaussian random field:
-data <- RFsim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
+data <- GeoSim(coordx=coords,coordt=times,corrmodel=cov.model, param=param)$data
 ##################################################################
 ##################################################################
 mm=mean(c(data))
@@ -868,13 +724,14 @@ vv=var(c(data))
 start=list(mean=mm,scale_s=scale_s,scale_t=scale_t,sill=vv)
 
 # Maximum composite-likelihood fitting of the random field:
-fit <- FitComposite(data=data,coordx=coords,coordt=times,
+fit <- GeoFit(data=data,coordx=coords,coordt=times,
                     corrmodel=cov.model,maxtime=maxtime,maxdist=maxdist,
                     likelihood="Marginal",type="Pairwise",
-                    start=start,fixed=fixed,weighted=T)
+                    start=start,fixed=fixed,weighted=TRUE)
 
 # Results:
 print(fit$param)
+unlist(start)
 ################################################
 #   parameters for the subsampling ####
 ###############################################
@@ -892,7 +749,7 @@ winc_t=4   ###  length of temporal window
 winstp_t=1 ###   0.5 half overlapping  1 "no" overlapping
 ###############################################
 
-theta=c(mm,vv,scale_s,scale_t)                #starting value  
+theta=start                #starting value  
 weighted=0                                          #weigthed version  1=yes 0=no
 ### eucliden likelihood ################ 
 type_subs=3   ### type of subsampling  1=in space    2= in time  3 =spacetime
@@ -903,17 +760,113 @@ eu_par=c(res$par[1],res$par[3],res$par[4],res$par[2])
 names(eu_par)=names(fit$param)
 print(eu_par)
 
+res=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,winc,winstp,winc_t,winstp_t,type_subs,weighted,varest = TRUE)
 
-### OpenCL eucliden likelihood ################ 
-local <- c(1,1)
-GPU <- 0
-tGPU = proc.time()
-res1=STBEUFit(theta,fix,coords,times,cc,data,type_dist,maxdist ,maxtime,winc,winstp,winc_t,winstp_t,type_subs,weighted, local = local, GPU = GPU)
-tGPU = proc.time()-tGPU;tGPU
-eu_par1=c(res1$par[1],res1$par[3],res1$par[4],res1$par[2])
-names(eu_par1)=names(fit$param)
-print(eu_par1)
-tCPU;tGPU
+
+
+
+
+#=======================Wen_time=======================#
+###########################################################
+require(GeoModels)
+library(spam)
+require(fields)
+require(STBEU)
+require(MCMCpack)
+
+corrmodel="Wen_time"; 
+
+
+####################################################
+# Define the spatial-coordinates of the points:
+set.seed(8)
+dp <- 3
+ns <- 7
+x <- runif(ns)
+y <- runif(ns)
+coords=cbind(x,y)
+
+
+n=nrow(coords)
+# Define the temporal-coordinates:
+times <- seq(0, 14.75, .3)
+# times <- seq(0, 14.75, 4)
+tt=length(times)
+####################################################
+
+
+####################################################
+smooth_t=2 # k or kappa
+scale_t=time_comp_supp=0.75     # compact supportt scale_t
+scale_s=0.1
+power2_t=3.5+smooth_t #nu
+power_s=2
+power2_s=2.5+2*smooth_t# tau
+
+sep=1  ## 0 0.5  1
+sill=1
+mean=0
+nugget=0
+####################################################
+
+####################################################
+param= list(nugget=0,mean=0,scale_t=time_comp_supp,scale_s=scale_s,
+            sill=sill,power2_t=power2_t,power2_s=power2_s,power_s=power_s,
+            sep=sep,smooth_t=smooth_t)
+####################################################
+# Simulation of a spatial Gaussian RF:
+
+set.seed(8519)
+
+data <- GeoSim(coordx=coords, coordt=times, corrmodel=corrmodel, 
+               param=param)$data
+
+
+start=list(scale_s=scale_s,scale_t=time_comp_supp,sill=sill,smooth_t=smooth_t)
+fixed=list(nugget=0,mean=0,power2_t=power2_t,power2_s=power2_s,power_s=power_s,sep=sep)
+# Maximum composite-likelihood fitting of the random field:
+tCPU0 <- proc.time()
+fit <- GeoFit(data=data,coordx=coords,coordt=times,corrmodel=corrmodel,
+              likelihood="Full",type="Standard",sparse=TRUE,
+              start=start,fixed=fixed)
+tCPU0 <- proc.time()-tCPU0
+print(tCPU0)
+
+
+model=3  #   1=double exponential       2 =gneiting 3 = WenTime
+
+# gneiting model
+cov.model <-"Wen_time"
+cc=3 
+#####
+param <- list(nugget=nugget,mean=mean,sill = sill,
+              power2_s=power2_s,power_s=power_s,power2_t=power2_t,scale_s=scale_s,
+              scale_t=scale_t,sep=sep,smooth_t=smooth_t)
+fixed=list(nugget=nugget,power2_s=power2_s,power2_t=power2_t,sep=sep,mean = mean)  
+fix=c(nugget=nugget,power2_s=power2_s,power2_t=power2_t,sep=sep,mean = mean,power_s=power_s)
+
+################################################
+#   parameters for the temporal subsampling ####
+###############################################
+
+winc=2    ###  length of temporal window
+winstp=1 ###   0.5 half overlapping  1 "no" overlapping
+###############################################
+
+#################################################################
+theta=start                #starting value 
+weighted=0
+type_dist=1                ### type of distance     1=euclidean 2=chordal  3=geodesic 
+maxdist=.4
+maxtime=2
+### eucliden likelihood ################ 
+type_subs=2    ### type of subsampling  1=in space    2= in time
+tCPU = proc.time()
+res=STBEUFit(theta,fix,coords,times,cc,data,type_dist,
+             maxdist ,maxtime,0,0,winc,winstp,type_subs,weighted)
+tCPU = proc.time()-tCPU
+print(tCPU)
+
 
 }
 \keyword{Composite}
