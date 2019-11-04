@@ -1,12 +1,9 @@
-
-
-
-
 #include <R.h>
 #include <Rmath.h>
 #include <Rinternals.h>
 #include <R_ext/Applic.h>
-
+#include <assert.h>
+#include <stdint.h>
 
 //#include "err_code.h"
 //#include "device_picker.h"
@@ -16,12 +13,13 @@
 #define MAX_BINARY_SIZE (0x1000000)
 
 #define MAX_SOURCE_SIZE (0x100000)
-#define BIN_PATH "Kernel.clbin"
+//#define BIN_PATH "Kernel.clbin"
 
-//#define EPS DBL_EPSILON
 #define EPS1 1.0e-5
-#define SQE 3.162278e-30
-#define SEP printf("-----------------------------------------------------------\n")
+//#define SQE 3.162278e-30
+#define SQE 1e-15
+
+#define SEP Rprintf("-----------------------------------------------------------\n")
 
 
 
@@ -65,28 +63,9 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
 void scalar_spacetime(int *npts,int *nstime,double *sublagt,double *maxtime,int *cormod,double *parcor,int *flagcor, double *gradcor,int *flagnuis, double *grad,int *npar,double *nuis,double *s2data,int *weigthed, double *ww, double *mom_cond,double *maxdist,int *dist, double *scoordx, double *scoordy);
 void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *winc, double *winstp,double *winc_t, double *winstp_t,double *block_mean,int *weigthed, int *local_wi, int *dev);
 
-char * getKernelSource(char *filename);
-float sum_total(float *arr, int ngrid);
-
-int DevOpenCL();
-void create_binary_kernel(int *dev, char **fname);
 
 
 
-
-
-void DoubleExpOCL(int *npts, int *ntime,double *coordt, double *maxtime,double *maxdist,int *cormod, double *parcor,int *flagcor,int *flagnuis,int *npar,double *nuis,double *data,int *weigthed, double *mom_cond, int *dist, double *coordx,double *coordy,double *gradcor,double  *grad, double *ww,int *local_wi, int *dev);
-
-void GneitingOCL(int *npts, int *ntime,double *coordt, double *maxtime,double *maxdist,int *cormod, double *parcor,int *flagcor,int *flagnuis,int *npar,double *nuis,double *data,int *weigthed, double *mom_cond, int *dist, double *coordx,double *coordy,double *gradcor,double  *grad, double *ww,int *local_wi, int *dev);
-
-void SubSamp_space_ocl(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *winc, double *winstp,double *a, double *b,double *block_mean,int *weigthed, int *local_wi, int *dev);
-
-void SubSamp_time_ocl(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *a, double *b,double *winc, double *winstp,double *block_mean,int *weigthed, int *local_wi, int *dev);
-void SubSamp_spacetime_ocl(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *winc, double *winstp,double *winc_t, double *winstp_t,double *block_mean,int *weigthed, int *local_wi, int *dev);
-
-void DoubleExpOCL(int *npts, int *ntime,double *coordt, double *maxtime,double *maxdist,int *cormod, double *parcor,int *flagcor,int *flagnuis,int *npar,double *nuis,double *data,int *weigthed, double *mom_cond, int *dist, double *coordx,double *coordy,double *gradcor,double  *grad, double *ww,int *local_wi, int *dev);
-void GneitingOCL(int *npts, int *ntime,double *coordt, double *maxtime,double *maxdist,int *cormod, double *parcor,int *flagcor,int *flagnuis,int *npar,double *nuis,double *data,int *weigthed, double *mom_cond, int *dist, double *coordx,double *coordy,double *gradcor,double  *grad, double *ww,int *local_wi, int *dev);
-void WendOCL(int *npts, int *ntime,double *coordt, double *maxtime,double *maxdist,int *cormod, double *parcor,int *flagcor,int *flagnuis,int *npar,double *nuis,double *data,int *weigthed, double *mom_cond, int *dist, double *coordx,double *coordy,double *gradcor,double  *grad, double *ww,int *local_wi, int *dev);
 
 
 
@@ -160,13 +139,6 @@ double RES_deri_R_power_t_wen_time(double *par, double *h,double *u, double *res
  Description: procedures for OCL computation.
  Start
  ---------------------------------------------------------------*/
-
-
-
-
-
-
-
 
 
 /*----------------------------------------------------------------
