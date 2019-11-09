@@ -1,89 +1,6 @@
 #include "header.h"
 
-
-/****************************************************************************************************************/
-void scalar_space(int *npts, int *ntime,double *coordt, double *maxtime,double *maxdist,int *cormod, double *parcor,int *flagcor,int *flagnuis,int *npar,double *nuis,double *sdata,int *weigthed, double *mom_cond, int *dist, double *scoordx,double *scoordy,double *gradcor,double  *grad, double *ww )
-{
-    int l=0,m=0,t =0, v =0 ,kk=0;
-    double lagt=0.0,lags=0.0, rho=0;
-    
-    for(l=0;l<npts[0];l++)
-    {
-        for(t=0;t<*ntime;t++)
-        {
-            for(m=l;m<npts[0];m++)
-            {
-                if(l==m)
-                {
-                    for(v=t+1;v<*ntime;v++)
-                    {
-                        lagt=fabs(coordt[t]-coordt[v]);
-                        if(lagt<=maxtime[0])
-                        {
-                            
-                            //Computing correlation
-                            rho=CorFct(cormod,0,lagt,parcor);
-                            //Computing the gradient of the corr parameters
-                           
-                            GradCorrFct(rho,cormod,flagcor,gradcor,0,lagt,parcor);
-                            //Compute the gradient of the composite likelihood:
-                            Grad_Pair_Gauss(rho,flagnuis,gradcor,grad,npar,nuis,sdata[(t+*ntime*l)],sdata[(v+*ntime*l)]);
-                            /*if(weigthed[0])
-                             {
-                             weights=CorFunBohman(lagt,maxtime[0]);
-                             ww[0]=1;ww[1]=1;ww[2]=weights;ww[3]=weights;
-                             }
-                             else
-                             {
-                             ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                             }*/
-                            //printf("npar:%d  g1 %f g2 %f g3 %f   gc %f gc %f\n",npar[0],grad[0],grad[1],grad[2],gradcor[0],gradcor[1]);
-                            ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                            for(kk=0;kk<npar[0];kk++)
-                            {mom_cond[kk]=mom_cond[kk]+ww[kk]*grad[kk];
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if(*dist==1) lags=hypot(scoordx[l]-scoordx[m],scoordy[l]-scoordy[m]); // euclidean lag
-                    for(v=0;v<*ntime;v++)
-                    {
-                        lagt=fabs(coordt[t]-coordt[v]);
-                        if(lagt<=maxtime[0] && lags<=maxdist[0])
-                        {
-                            //Computing correlation
-                            rho=CorFct(cormod,lags,lagt,parcor);
-                            //Computing the gradient of the corr parameters
-                            GradCorrFct(rho,cormod,flagcor,gradcor,lags,lagt,parcor);
-                            //Compute the gradient of the composite likelihood:
-                            Grad_Pair_Gauss(rho,flagnuis,gradcor,grad,npar,nuis,sdata[(t+*ntime*l)],sdata[(v+*ntime*m)]);
-                            /*if(weigthed[0])
-                             {
-                             weights=CorFunBohman(lags,maxdist[0])*CorFunBohman(lagt,maxtime[0]);
-                             ww[0]=1;ww[1]=1;ww[2]=weights;ww[3]=weights;
-                             }
-                             else
-                             {
-                             ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                             }*/
-                            ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                            for(kk=0;kk<npar[0];kk++)
-                            {mom_cond[kk]=mom_cond[kk]+ww[kk]*grad[kk];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    //printf("final result: %.4f\t%.4f\t%.4f\t%.4f\n",mom_cond[0],mom_cond[1],mom_cond[2],mom_cond[3]);
-}
-
-/*******************************************************************************************************************************************/
-
-void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *winc, double *winstp,double *a, double *b,double *block_mean,int *weigthed, int *local_wi, int *dev)
+void SubSamp_space_ocl(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *winc, double *winstp,double *a, double *b,double *block_mean,int *weigthed, int *local_wi, int *dev,char **fname)
 {
     double   *rangex, *rangey;
     double *vv,*sdata,*xgrid,*ygrid,*scoordx,*scoordy;
@@ -142,9 +59,9 @@ void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,in
         vector_mean[i]=(double *) Calloc((numintx+1)*(numinty+1),double);
     }
     
-    ww=(double *) Calloc(*npar,double);
-    gradcor=(double *) Calloc(*nparc,double);
-    grad=(double *) Calloc(*npar,double);
+    ww=(double *) Calloc(npar[0],double);
+    gradcor=(double *) Calloc(nparc[0],double);
+    grad=(double *) Calloc(npar[0],double);
     
     nsub=0;
     n_win=numintx*numinty;   //// number of windows
@@ -163,16 +80,16 @@ void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,in
                (((ygrid[j]+dimwiny))<rangey[1]||is_equal(ygrid[j]+dimwiny,rangey[1]))&&       //and windows with few loc sites
                (npts[0]>5))
             {
-                mom_cond=(double *) Calloc(*npar,double);
-                /******************************************/
-                /*computing gradient in the window*/
-                /******************************************/
+                mom_cond=(double *) Calloc(npar[0],double);
+                //-------------------------------------
+                //computing gradient in the window
+                //-------------------------------------
+                exec_kernel(npts,ntime,coordt,maxtime,maxdist,cormod,parcor,flagcor,flagnuis,npar,nuis,sdata,weigthed,mom_cond,dist,scoordx,scoordy,gradcor,grad,ww,local_wi,dev,fname,nparc,nparnuis);
                 
-                scalar_space(npts,ntime,coordt,maxtime,maxdist,cormod,parcor,flagcor,flagnuis,npar,nuis,sdata,weigthed,mom_cond,dist, scoordx,scoordy,gradcor,grad,ww);
                 
                 
-                /******************************************/
-                /******************************************/
+                //-------------------------------------
+                //-------------------------------------
                 //for(l=0;l<nsens;l++) sensmat[l]=sensmat[l]-sens[l];
                 for(kk=0;kk<npar[0];kk++)
                 {
@@ -199,14 +116,14 @@ void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,in
     //mean over blocks
     for(q=0;q<n_win ;q++)
     {
-        for(kk=0;kk<*npar;kk++)
+        for(kk=0;kk<npar[0];kk++)
         {
             block_mean[kk]= block_mean[kk]+ vector_mean[kk][q]/n_win;
         }
     }
     for(q=0;q<n_win ;q++)
     {
-        for(kk=0;kk<*npar;kk++)
+        for(kk=0;kk<npar[0];kk++)
         {
             tot[kk][q]=  vector_mean[kk][q]+block_mean[kk];
         }
@@ -217,9 +134,9 @@ void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,in
     h=0;
     for(r=0;r<n_win ;r++)
     {
-        for(p=0;p< *npar;p++)
+        for(p=0;p< npar[0];p++)
         {
-            for(q=p;q< *npar;q++)
+            for(q=p;q< npar[0];q++)
             {
                 vv[h]=vv[h]+(tot[p][r])*(tot[q][r])/(n_win);
                 h++;
@@ -244,99 +161,13 @@ void SubSamp_space(double *coordx, double *coordy,double *coordt, int *ncoord,in
     
     return;
 }
-/*******************************************************************************************************************************************/
-
-void scalar_time(int *ncoord,int *nstime,double *sublagt,int *cormod,double *parcor,int *flagcor, double *gradcor,int *flagnuis, double *grad,int *npar,double *nuis, double *sdata,int *weigthed,double *maxtime, double *ww, double *mom_cond,int *dist, double *coordx, double *coordy,double *maxdist)
-{
-    //Rprintf("C: R_power_s: %f R_power: %f R_power_t: %f scale_s: %f scale_t: %f sep: %f smooth: %f \n",parcor[1],parcor[0],parcor[2],parcor[3],parcor[4],parcor[5],parcor[6]);
-    
-    int l= 0, t=0, m=0, v=0,kk=0;
-    double lags=0.0,lagt=0.0,rho=0.0;
-    
-    
-    for(l=0;l<ncoord[0];l++)
-    {
-        for(t=0;t<nstime[0];t++)
-        {
-            for(m=l;m<ncoord[0];m++)
-            {
-                if(l==m)
-                {
-                    for(v=t+1;v<nstime[0];v++)
-                    {
-                        lagt=fabs(sublagt[t]-sublagt[v]);
-                        if(lagt<=maxtime[0])
-                        {
-                            //Computing correlation
-                            rho=CorFct(cormod,0,lagt,parcor);
-                            //Computing the gradient of the corr parameters
-                            
-                            GradCorrFct(rho,cormod,flagcor,gradcor,0,lagt,parcor);
-                            
-                            //printf("A: C gradcor: %f\t%f\t%f\n\n",gradcor[0],gradcor[1],gradcor[2]);
-                            //Compute the gradient of the composite likelihood:
-                            Grad_Pair_Gauss(rho,flagnuis,gradcor,grad,npar,nuis,sdata[(t+nstime[0]*l)],sdata[(v+nstime[0]*l)]);
-                            /*if(*weigthed)
-                             {
-                             weights=CorFunBohman(lagt,maxtime[0]);
-                             ww[0]=1;ww[1]=1;ww[2]=weights;ww[3]=weights;
-                             }
-                             else
-                             {
-                             ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                             }*/
-                            ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                            for(kk=0;kk<npar[0];kk++)
-                            {
-                                //Rprintf("A: mom_cond[kk]: %f  grad[kk]: %f\n",mom_cond[kk],grad[kk]);
-                                mom_cond[kk]=mom_cond[kk]+ww[kk]*grad[kk];
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if(*dist==1) lags=hypot(coordx[l]-coordx[m],coordy[l]-coordy[m]);    // lag distance in the subwindow
-                    // if(*dist==2) lags=Dist_geodesic(coordx[l],coordy[l],coordx[m],coordy[m]);
-                    for(v=0;v<nstime[0];v++)
-                    {
-                        lagt=fabs(sublagt[t]-sublagt[v]);
-                        if(lagt<=maxtime[0] && lags<=maxdist[0])
-                        {
-                            //Computing correlation
-                            rho=CorFct(cormod,lags,lagt,parcor);
-                            //Computing the gradient of the corr parameters
-                            //printf("B: C gradcor: %f\t%f\t%f\n\n",gradcor[0],gradcor[1],gradcor[2]);
-                            GradCorrFct(rho,cormod,flagcor,gradcor,lags,lagt,parcor);
-                            //Compute the gradient of the composite likelihood:
-                            Grad_Pair_Gauss(rho,flagnuis,gradcor,grad,npar,nuis,sdata[(t+nstime[0]*l)],sdata[(v+nstime[0]*m)]);
-                            /*if(*weigthed)
-                             {
-                             weights=CorFunBohman(lags,maxdist[0])*CorFunBohman(lagt,maxtime[0]);
-                             ww[0]=1;ww[1]=1;ww[2]=weights;ww[3]=weights;
-                             }
-                             else
-                             {
-                             ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                             }*/
-                            ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                            for(kk=0;kk<npar[0];kk++)
-                            {
-                                //Rprintf("B: mom_cond[kk]: %f  grad[kk]: %f\n",mom_cond[kk],grad[kk]);
-                                mom_cond[kk]=mom_cond[kk]+ww[kk]*grad[kk];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/*******************************************************************************************************************************************/
 
 
-void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *a, double *b,double *winc, double *winstp,double *block_mean,int *weigthed,int *local_wi, int *dev)
+
+
+
+
+void SubSamp_time_ocl(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *a, double *b,double *winc, double *winstp,double *block_mean,int *weigthed,int *local_wi, int *dev,char **fname)
 {
     double beta, *gradcor;
     double *vv,*ww,*sdata, *grad, *sublagt;
@@ -386,15 +217,9 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
         /******************************************/
         /*computing gradient in the window*/
         /******************************************/
-      // printf("C gradcor: %f\t%f\t%f\n\n",gradcor[0],gradcor[1],gradcor[2]);
-        scalar_time(ncoord,&nstime,sublagt,cormod,parcor,flagcor,gradcor,flagnuis,grad,npar,nuis,sdata,weigthed,maxtime,ww,mom_cond,dist,coordx,coordy,maxdist);
+    exec_kernel(ncoord,&nstime,sublagt,maxtime,maxdist,cormod,parcor,flagcor,flagnuis,npar,nuis,sdata,weigthed,mom_cond,dist,coordx,coordy,gradcor,grad,ww,local_wi,dev,fname,nparc,nparnuis);
         
-        /*if(mom_cond[0]<0 || mom_cond[1]<0 ||mom_cond[2]<0)
-        {
-            Rprintf("%f\t%f\t%f\n",mom_cond[0],mom_cond[1],mom_cond[2]);
-        }*/
-        
-        //printf("C: %f\t%f\t%f\t%f\n",mom_cond[0],mom_cond[1],mom_cond[2],mom_cond[3]);
+       
         /******************************************/
         /******************************************/
         for(kk=0;kk<npar[0];kk++)
@@ -465,93 +290,12 @@ void SubSamp_time(double *coordx, double *coordy,double *coordt, int *ncoord,int
     return;
 }
 
-/*******************************************************************************************************************************************/
-
-void scalar_spacetime(int *npts,int *nstime,double *sublagt,double *maxtime,int *cormod,double *parcor,int *flagcor, double *gradcor,int *flagnuis, double *grad,int *npar,double *nuis,double *s2data,int *weigthed, double *ww, double *mom_cond,double *maxdist,int *dist, double *scoordx, double *scoordy)
-{
-    int l=0,t=0,m=0,v=0,kk=0;
-    double lagt=0.0,rho=0,lags=0.0;
-    for(l=0;l<npts[0];l++)
-    {
-        for(t=0;t<nstime[0];t++)
-        {
-            for(m=l;m<npts[0];m++)
-            {
-                if(l==m)
-                {
-                    for(v=t+1;v<nstime[0];v++)
-                    {
-                        lagt=fabs(sublagt[t]-sublagt[v]);
-                        if(lagt<=maxtime[0])
-                        {
-                            //Computing correlation
-                            rho=CorFct(cormod,0,lagt,parcor);
-                            //Computing the gradient of the corr parameters
-                            GradCorrFct(rho,cormod,flagcor,gradcor,0,lagt,parcor);
-                            //Compute the gradient of the composite likelihood:
-                            Grad_Pair_Gauss(rho,flagnuis,gradcor,grad,npar,nuis,s2data[(t+nstime[0]*l)],s2data[(v+nstime[0]*l)]);
-                            /*if(*weigthed)
-                             {
-                             weights=CorFunBohman(lagt,maxtime[0]);
-                             ww[0]=1;ww[1]=1;ww[2]=weights;ww[3]=weights;
-                             }
-                             else
-                             {ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                             }*/
-                            ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                            for(kk=0;kk<npar[0];kk++)
-                            {mom_cond[kk]=mom_cond[kk]+ww[kk]*grad[kk];
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if(*dist==1) lags=hypot(scoordx[l]-scoordx[m],scoordy[l]-scoordy[m]);
-                    // if(*dist==2) lags=Dist_geodesic(scoordx[l],scoordy[l],scoordx[m],scoordy[m]);
-                    for(v=0;v<nstime[0];v++)
-                    {
-                        lagt=fabs(sublagt[t]-sublagt[v]);
-                        if(lagt<=maxtime[0] && lags<=maxdist[0])
-                        {
-                            //Computing correlation
-                            rho=CorFct(cormod,lags,lagt,parcor);
-                            //Computing the gradient of the corr parameters
-                            GradCorrFct(rho,cormod,flagcor,gradcor,lags,lagt,parcor);
-                            //Compute the gradient of the composite likelihood:
-                            Grad_Pair_Gauss(rho,flagnuis,gradcor,grad,npar,nuis,s2data[(t+nstime[0]*l)],s2data[(v+nstime[0]*m)]);
-                            /*if(*weigthed)
-                             {
-                             weights=CorFunBohman(lags,maxdist[0])*CorFunBohman(lagt,maxtime[0]);
-                             ww[0]=1;ww[1]=1;ww[2]=weights;ww[3]=weights;
-                             }
-                             else
-                             {
-                             ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                             }*/
-                            ww[0]=1;ww[1]=1;ww[2]=1; ww[3]=1;
-                            for(kk=0;kk<npar[0];kk++)
-                            {
-                                mom_cond[kk]=mom_cond[kk]+ww[kk]*grad[kk];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 
-/*******************************************************************************************************************************************/
-
-
-void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *winc, double *winstp,double *winc_t, double *winstp_t,double *block_mean,int *weigthed, int *local_wi, int *dev)
+void SubSamp_spacetime_ocl(double *coordx, double *coordy,double *coordt, int *ncoord,int *ntime,int *cormod,double *data,int *dist, double *maxdist,double *maxtime,int *npar,double *parcor,int *nparc,double *nuis,int *nparnuis, int *flagcor, int *flagnuis,double *vari,double *winc, double *winstp,double *winc_t, double *winstp_t,double *block_mean,int *weigthed, int *local_wi, int *dev,char **fname)
 
 
 {
-    //Rprintf("A: %f %f\n",winc[0],winstp[0]);
-    
     double  beta, *rangex, *rangey;
     double *vv,*sdata,*s2data,*xgrid,*ygrid,*scoordx,*scoordy,*sublagt;
     double *gradcor,*grad,*ww;
@@ -585,13 +329,11 @@ void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoor
     //Rprintf("B: %f %f\n",winc[0],winstp[0]);
     dimwinx=winc[0] * sqrt(deltax);// sub-window x length depends on a constant: deafault??
     dimwiny=winc[0] * sqrt(deltay);// sub-window y length depends on a constant: deafault??
-    //Rprintf("C:%f %f %f %f %f %f\n",dimwinx,dimwiny,winc[0],winstp[0],deltax,deltay);
     
     winstx=*winstp * dimwinx;     // x step is a  proportion of sub-window x length (deafult is 0.5)
     winsty=*winstp * dimwiny;     // y step is a  proportion of sub-window y length (deafult is 0.5)
     numintx=floor((deltax-dimwinx)/winstx+1);   //number of overlapping sub-windows is  numintx+1 * numinty+1
     numinty=floor((deltay-dimwiny)/winsty+1);
-    //Rprintf("C:%f %f %f %f %f %f %f %f\n",dimwinx,dimwiny,winc[0],winstp[0],deltax,deltay,numintx,numinty);
     
     xgrid=(double *) R_alloc(numintx, sizeof(double));
     ygrid=(double *) R_alloc(numinty, sizeof(double));
@@ -660,8 +402,9 @@ void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoor
                     /*computing gradient in the window*/
                     /******************************************/
                     
-                    scalar_spacetime(npts,&nstime,sublagt,maxtime,cormod,parcor,flagcor,gradcor,flagnuis,grad,npar,nuis,s2data,weigthed,ww,mom_cond,maxdist,dist,scoordx,scoordy);
+                    //scalar_spacetime(npts,&nstime,sublagt,maxtime,cormod,parcor,flagcor,gradcor,flagnuis,grad,npar,nuis,s2data,weigthed,ww,mom_cond,maxdist,dist,scoordx,scoordy);
                     
+                    exec_kernel(npts,&nstime,sublagt,maxtime,maxdist,cormod,parcor,flagcor,flagnuis,npar,nuis,s2data,weigthed,mom_cond,dist,scoordx,scoordy,gradcor,grad,ww,local_wi,dev,fname,nparc,nparnuis);
                     
                     /******************************************/
                     /******************************************/
@@ -731,5 +474,3 @@ void SubSamp_spacetime(double *coordx, double *coordy,double *coordt, int *ncoor
     
     return;
 }
-
-/*******************************************************************************************************************************************/
