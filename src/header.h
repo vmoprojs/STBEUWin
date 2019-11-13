@@ -32,7 +32,7 @@
 
 
 //---------START DECLARING FUNCTIONS-----------
-
+void CorFct_call(int *cormod, double *h, double *u, double *par,double *res);
 void Grad_Pair_Gauss(double rho, int *flag, double *gradcor, double *grad,
                      int *npar, double *par, double u, double v);
 double DGneiting_sep(double h,double u, double power_s,double power_t,double scale_s,double scale_t,double sep);
@@ -139,7 +139,6 @@ double RES_deri_R_power_t_wen_time(double *par, double *h,double *u, double *res
  Description: procedures for OCL computation.
  Start
  ---------------------------------------------------------------*/
-
 
 /*----------------------------------------------------------------
  File name: Host.c
