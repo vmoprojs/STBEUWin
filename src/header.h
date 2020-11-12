@@ -15,12 +15,23 @@
 #define MAX_SOURCE_SIZE (0x100000)
 //#define BIN_PATH "Kernel.clbin"
 
-#define EPS1 1.0e-5
+//#define EPS1 1.0e-5
+#define EPS1 DBL_EPSILON
+#define SQE sqrt(DBL_EPSILON)
 //#define SQE 3.162278e-30
+//#define SQE 0.00000001490116119384765625
+//#define SQE 10e-8
+//#define SQE 0x1.ad7f29abcaf48p-24
 //#define SQE 0.003162278
 //1.19209e-07
-//#define SQE 3.162278e-10
-#define SQE 3.162278e-13
+//#define SQE 3.162278e-12
+//#define SQE 1.0e-15
+//#define SQE 3.162278e-13 // ESTE ES EL BUENO
+
+
+
+//#define SQE 3.162278e-14
+//#define SQE 0.003162278
 
 
 #define SEP Rprintf("-----------------------------------------------------------\n")
@@ -126,14 +137,5 @@ double RES_deri_R_power_t_wen_time(double *par, double *h,double *u, double *res
 
 
 //---------END WENDLAND FUNCTIONS-----------
-
-
-
-
-
-
-
-
-
 
 
